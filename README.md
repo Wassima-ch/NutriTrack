@@ -13,8 +13,17 @@ Avant de commencer, assurez-vous d'avoir installé les outils suivants :
 3.  **Expo Go** : Téléchargez l'application sur votre smartphone ([App Store](https://apps.apple.com/app/expo-go/id982107779) ou [Google Play](https://play.google.com/store/apps/details?id=host.exp.exponent)).
 
 ---
+## 📱 Étape 2 : Connecter votre téléphone
 
-## 💻 Étape 2 : Installation et Lancement
+Une fois que la commande `npx expo start` est lancée, un **QR Code** géant va apparaître dans votre terminal.
+
+**Réseau** : Connectez votre téléphone sur le **même réseau Wi-Fi** que votre ordinateur.
+**Application** : Ouvrez l'application **Expo Go** sur votre téléphone.
+**Scan** : Appuyez sur **"Scan QR Code"** (Android) ou utilisez l'appareil photo (iOS).
+**Action** : Scannez le code qui s'affiche sur votre écran d'ordinateur.
+**Chargement** : Attendez que le chargement (le "Build") atteigne 100% sur votre téléphone.
+ ---
+## 💻 Étape 3 : Installation et Lancement
 
 Ouvrez votre terminal (ou invite de commande CMD) et exécutez les commandes suivantes dans l'ordre :
 
@@ -32,16 +41,8 @@ cd NutriTrack
 npm install
 
 # Lancer l'application
-npx expo start
+npx expo start  or npx expo start -c
 
 ---
 
-## 📱 Étape 3 : Connecter votre téléphone
 
-Une fois que la commande `npx expo start` est lancée, un **QR Code** géant va apparaître dans votre terminal.
-
-* **Réseau** : Connectez votre téléphone sur le **même réseau Wi-Fi** que votre ordinateur.
-* **Application** : Ouvrez l'application **Expo Go** sur votre téléphone.
-* **Scan** : Appuyez sur **"Scan QR Code"** (Android) ou utilisez l'appareil photo (iOS).
-* **Action** : Scannez le code qui s'affiche sur votre écran d'ordinateur.
-* **Chargement** : Attendez que le chargement (le "Build") atteigne 100% sur votre téléphone.
