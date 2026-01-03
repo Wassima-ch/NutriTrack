@@ -17,11 +17,11 @@ Avant de commencer, assurez-vous d'avoir installé les outils suivants :
 
 Une fois que la commande `npx expo start` est lancée, un **QR Code** géant va apparaître dans votre terminal.
 
-**Réseau** : Connectez votre téléphone sur le **même réseau Wi-Fi** que votre ordinateur.
-**Application** : Ouvrez l'application **Expo Go** sur votre téléphone.
-**Scan** : Appuyez sur **"Scan QR Code"** (Android) ou utilisez l'appareil photo (iOS).
-**Action** : Scannez le code qui s'affiche sur votre écran d'ordinateur.
-**Chargement** : Attendez que le chargement (le "Build") atteigne 100% sur votre téléphone.
+* **Réseau** : Connectez votre téléphone sur le **même réseau Wi-Fi** que votre ordinateur.
+* **Application** : Ouvrez l'application **Expo Go** sur votre téléphone.
+* **Scan** : Appuyez sur **"Scan QR Code"** (Android) ou utilisez l'appareil photo (iOS).
+* **Action** : Scannez le code qui s'affiche sur votre écran d'ordinateur.
+* **Chargement** : Attendez que le chargement (le "Build") atteigne 100% sur votre téléphone.
  ---
 ## 💻 Étape 3 : Installation et Lancement
 
