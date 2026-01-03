@@ -23,7 +23,32 @@ Une fois que la commande `npx expo start` est lancée, un **QR Code** géant va 
 * **Action** : Scannez le code qui s'affiche sur votre écran d'ordinateur.
 * **Chargement** : Attendez que le chargement (le "Build") atteigne 100% sur votre téléphone.
  ---
-## 💻 Étape 3 : Installation et Lancement
+## 🔑 Étape 3 : Configuration des clés de sécurité
+
+Pour que l'authentification et l'IA fonctionnent, vous devez configurer vos propres clés dans les fichiers suivants :
+
+### 1. APIs
+Ouvrez les fichiers suivants et remplacez `GROQ_API_KEY` par votre clé API Groq :
+* `src/api/geminiAI.ts`
+* `src/api/mealPlannerAI.ts`
+
+```typescript
+const GROQ_API_KEY = "VOTRE_CLE_GROQ_ICI";
+### 2. Base de données Firebase
+Ouvrez le fichier `src/config/firebase.ts` et remplacez les informations de l'objet `firebaseConfig` par les identifiants de votre propre projet Firebase (disponibles dans les paramètres de votre projet sur la Console Firebase) :
+
+```typescript
+// Dans src/config/firebase.ts
+const firebaseConfig = {
+  apiKey: "VOTRE_API_KEY",
+  authDomain: "VOTRE_PROJET.firebaseapp.com",
+  projectId: "VOTRE_PROJET_ID",
+  storageBucket: "VOTRE_PROJET.appspot.com",
+  messagingSenderId: "VOTRE_SENDER_ID",
+  appId: "VOTRE_APP_ID"
+};
+ ---
+## 💻 Étape 4 : Installation et Lancement
 
 Ouvrez votre terminal (ou invite de commande CMD) et exécutez les commandes suivantes dans l'ordre :
 
@@ -41,7 +66,9 @@ cd NutriTrack
 npm install
 
 # Lancer l'application
-npx expo start  or npx expo start -c
+npx expo start
+or
+npx expo start -c
 
 ---
 
