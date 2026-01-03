@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "NutriTrack",
+    "slug": "NutriTrack",
+    "version": "1.0.0",
+    "icon": "./assets/logo.png",
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F8FAF5"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#F8FAF5"
+      },
+      "package": "com.anonymous.NutriTrack"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "7459c9d6-5297-4bd9-858e-418de3811e19"
+      }
+    }
+  }
+}
