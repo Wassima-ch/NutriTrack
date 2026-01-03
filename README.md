@@ -22,8 +22,8 @@ Une fois que la commande `npx expo start` est lancée, un **QR Code** géant va 
 * **Scan** : Appuyez sur **"Scan QR Code"** (Android) ou utilisez l'appareil photo (iOS).
 * **Action** : Scannez le code qui s'affiche sur votre écran d'ordinateur.
 * **Chargement** : Attendez que le chargement (le "Build") atteigne 100% sur votre téléphone.
- ---
-## 🔑 Étape 3 : Configuration des clés de sécurité
+
+ ## 🔑 Étape 3 : Configuration des clés de sécurité
 
 Pour que l'authentification et l'IA fonctionnent, vous devez configurer vos propres clés dans les fichiers suivants :
 
@@ -46,7 +46,9 @@ const firebaseConfig = {
   storageBucket: "VOTRE_PROJET.appspot.com",
   messagingSenderId: "VOTRE_SENDER_ID",
   appId: "VOTRE_APP_ID"
-};
+}; 
+ ---
+
  ---
 ## 💻 Étape 4 : Installation et Lancement
 
