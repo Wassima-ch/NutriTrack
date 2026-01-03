@@ -38,7 +38,7 @@ const GROQ_API_KEY = "VOTRE_CLE_GROQ_ICI";
 Ouvrez le fichier `src/config/firebase.ts` et remplacez les informations de l'objet `firebaseConfig` par les identifiants de votre propre projet Firebase (disponibles dans les paramètres de votre projet sur la Console Firebase) :
 
 typescript
-// Dans src/config/firebase.ts
+`// Dans src/config/firebase.ts
 const firebaseConfig = {
   apiKey: "VOTRE_API_KEY",
   authDomain: "VOTRE_PROJET.firebaseapp.com",
@@ -46,7 +46,7 @@ const firebaseConfig = {
   storageBucket: "VOTRE_PROJET.appspot.com",
   messagingSenderId: "VOTRE_SENDER_ID",
   appId: "VOTRE_APP_ID"
-}; 
+}; `
 
 
  ---
