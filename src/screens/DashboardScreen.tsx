@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../config/firebase';
@@ -11,6 +11,7 @@ import {
 
 import { calculateBMR, calculateMacros } from '../utils/nutrition';
 import AIRecommendation from '../components/AIRecommendation'; 
+import { BadgeSystem } from '../components/BadgeSystem';
 
 const MacroBar = ({ label, current, target, color }: any) => (
   <View className="mb-4">
@@ -30,7 +31,7 @@ export default function DashboardScreen({ navigation }: any) {
   const [weeklyData, setWeeklyData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState('');
-  
+  const [stats, setStats] = useState({ total: 0, streak: 0 }); // On ne stocke plus perfectWeek ici pour éviter les boucles
   const todayMaroc = new Date().toLocaleDateString('fr-FR', { timeZone: 'Africa/Casablanca' });
 
   useEffect(() => {
@@ -46,7 +47,12 @@ export default function DashboardScreen({ navigation }: any) {
     const userUid = auth.currentUser?.uid;
     if (!userUid) return;
 
-    const unsubUser = onSnapshot(doc(db, "users", userUid), (snap) => setUserData(snap.data()));
+    // 1. Profil Utilisateur
+    const unsubUser = onSnapshot(doc(db, "users", userUid), (snap) => {
+      setUserData(snap.data());
+    });
+
+    // 2. Repas du jour
     const qToday = query(collection(db, "meals"), where("userId", "==", userUid), where("date", "==", todayMaroc));
     const unsubToday = onSnapshot(qToday, (snap) => {
       let sum = { calories: 0, proteins: 0, carbs: 0, fats: 0 };
@@ -60,24 +66,67 @@ export default function DashboardScreen({ navigation }: any) {
       setTotals(sum);
     });
 
-    const qWeek = query(collection(db, "meals"), where("userId", "==", userUid), orderBy("createdAt", "desc"), limit(50));
+    // 3. Stats Globales & Hebdo
+    const qWeek = query(collection(db, "meals"), where("userId", "==", userUid), orderBy("createdAt", "desc"), limit(100));
     const unsubWeek = onSnapshot(qWeek, (snap) => {
       const daysMap: any = {};
-      snap.forEach(d => { const m = d.data(); daysMap[m.date] = (daysMap[m.date] || 0) + (m.calories || 0); });
+      snap.forEach(d => { 
+        const m = d.data(); 
+        daysMap[m.date] = (daysMap[m.date] || 0) + (Number(m.calories) || 0); 
+      });
+
+      // Calcul du Streak
+      let currentStreak = 0;
+      let checkDate = new Date();
+      while (daysMap[checkDate.toLocaleDateString('fr-FR', { timeZone: 'Africa/Casablanca' })]) {
+        currentStreak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      }
+
+      setStats({ 
+        total: snap.size, 
+        streak: currentStreak
+      });
+
       const last7 = [...Array(7)].map((_, i) => {
         const d = new Date(); d.setDate(d.getDate() - i);
         const k = d.toLocaleDateString('fr-FR', { timeZone: 'Africa/Casablanca' });
-        return { day: d.toLocaleDateString('fr-FR', { weekday: 'short', timeZone: 'Africa/Casablanca' }), kcal: daysMap[k] || 0 };
+        return { 
+          day: d.toLocaleDateString('fr-FR', { weekday: 'short', timeZone: 'Africa/Casablanca' }), 
+          kcal: daysMap[k] || 0,
+          dateKey: k
+        };
       }).reverse();
+
       setWeeklyData(last7);
       setLoading(false);
     });
 
-    return () => { clearInterval(timer); unsubUser(); unsubToday(); unsubWeek(); };
+    return () => { 
+      clearInterval(timer); 
+      unsubUser(); 
+      unsubToday(); 
+      unsubWeek(); 
+    };
   }, [todayMaroc]);
 
+  // --- CALCULS DERIVÉS (SANS BOUCLE INFINIE) ---
   const dailyBudget = calculateBMR(userData);
   const macroTargets = calculateMacros(dailyBudget);
+
+  // Vérification de la semaine parfaite (calculé à chaque rendu, très léger)
+  const isPerfectWeek = useMemo(() => {
+    if (!userData || weeklyData.length < 7) return false;
+    return weeklyData.every(day => 
+      day.kcal > 0 && 
+      day.kcal >= dailyBudget * 0.85 && 
+      day.kcal <= dailyBudget * 1.15
+    );
+  }, [weeklyData, dailyBudget, userData]);
+
+  const goalReachedToday = totals.calories > 0 && 
+                           totals.calories >= dailyBudget * 0.85 && 
+                           totals.calories <= dailyBudget * 1.15;
 
   if (loading) return <View className="flex-1 bg-fresh justify-center items-center"><ActivityIndicator color="#A3C981" /></View>;
 
@@ -113,7 +162,12 @@ export default function DashboardScreen({ navigation }: any) {
           </View>
 
           <AIRecommendation caloriesToday={totals.calories} bmr={dailyBudget} />
-
+<BadgeSystem 
+            totalMeals={stats.total} 
+            streak={stats.streak} 
+            goalReachedToday={goalReachedToday} 
+            perfectWeek={isPerfectWeek} 
+          />
           {/* SUIVI NUTRITIF AVEC CONSOMMÉ ET RESTANT */}
           <View className="bg-white p-6 rounded-[35px] mt-6 border border-secondary/10 shadow-sm">
             <View className="flex-row items-center mb-6">

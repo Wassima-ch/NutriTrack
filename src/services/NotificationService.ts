@@ -5,107 +5,87 @@ import * as Device from 'expo-device';
 Notifications.setNotificationHandler({
   handleNotification: async (): Promise<Notifications.NotificationBehavior> => ({
     shouldShowAlert: true,
-    shouldShowBanner: true,   // ✅ REQUIRED (iOS)
-    shouldShowList: true,     // ✅ REQUIRED (iOS)
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
 });
 
 /**
- * Ask permission correctly (Android 13+ supported)
+ * Demande de permissions
  */
 export const requestNotificationPermissions = async () => {
-  if (!Device.isDevice) {
-    console.log('❌ Notifications require a real device');
-    return false;
-  }
+  if (!Device.isDevice) return false;
 
   let { status } = await Notifications.getPermissionsAsync();
-
   if (status !== 'granted') {
-    const request = await Notifications.requestPermissionsAsync({
-      android: {
-        allowAlert: true,
-        allowSound: true,
-        allowBadge: true,
-      },
-    });
+    const request = await Notifications.requestPermissionsAsync();
     status = request.status;
   }
 
   if (status !== 'granted') {
-    Alert.alert(
-      'Notifications désactivées',
-      'Activez les notifications dans les paramètres Android'
-    );
+    Alert.alert('Notifications désactivées', 'Activez-les pour ne rater aucun repas !');
     return false;
   }
 
-  // ✅ ANDROID CHANNEL (REQUIRED)
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
-      name: 'Rappels de repas',
+      name: 'Rappels NutriTrack',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#A3C981',
       sound: 'default',
     });
   }
-
   return true;
 };
 
 /**
- * Schedule daily meal reminders
+ * Programmation des rappels quotidiens
  */
 export const scheduleMealReminders = async () => {
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
 
     const meals = [
-      { title: 'Petit-déjeuner 🍳', hour: 8, minute: 30 },
-      { title: 'Déjeuner 🥗', hour: 12, minute: 30 },
-      { title: 'Dîner 🍽️', hour: 19, minute: 30 },
+      { 
+        name: 'Petit-déjeuner 🍳', 
+        hour: 23, 
+        minute: 20, 
+        intro: "Bon réveil ! ☀️" 
+      },
+      { 
+        name: 'Déjeuner 🥗', 
+        hour: 23, 
+        minute: 22, 
+        intro: "C'est l'heure de la pause ! 😋" 
+      },
+      { 
+        name: 'Dîner 🍽️', 
+        hour: 23, 
+        minute: 24, 
+        intro: "La journée touche à sa fin... ✨" 
+      },
     ];
 
     for (const meal of meals) {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: "C'est l'heure de manger !",
-          body: `N'oubliez pas votre ${meal.title}`,
+          title: "NutriTrack 🍏", // Titre fixe
+          body: `${meal.intro} N'oubliez pas de noter votre ${meal.name}.`, // Nom du repas dans le message
           sound: 'default',
+          priority: 'max',
         },
         trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: meal.hour,
           minute: meal.minute,
-          repeats: true,
-          channelId: 'default',
-        },
+        } as Notifications.DailyTriggerInput,
       });
     }
-
-    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-    console.log(`✅ ${scheduled.length} notifications programmées`);
-
+    console.log("✅ Rappels configurés : Nom du repas dans le message.");
   } catch (error) {
-    console.error('❌ Notification error:', error);
+    console.error('❌ Erreur:', error);
   }
-};
-
-/**
- * Simple test notification (5 seconds)
- */
-export const testNotification = async () => {
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'Test réussi ✅',
-      body: 'Notification envoyée après 5 secondes',
-      sound: 'default',
-    },
-    trigger: {
-      seconds: 5,
-      channelId: 'default',
-    },
-  });
 };

@@ -1,22 +1,20 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, Image, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, Image, ActivityIndicator, StyleSheet, LogBox } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
-// import * as Notifications from 'expo-notifications';
 
-// Notifications.setNotificationHandler({
-//   handleNotification: async (): Promise<Notifications.NotificationBehavior> => ({
-//     shouldShowAlert: true,
-//     shouldShowBanner: true,   // ✅ REQUIRED (iOS)
-//     shouldShowList: true,     // ✅ REQUIRED (iOS)
-//     shouldPlaySound: true,
-//     shouldSetBadge: false,
-//   }),
-// });
+// Import Firebase pour la vérification au démarrage
+import { auth, db } from './src/config/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
+// Import des services de notification
+import { 
+    requestNotificationPermissions, 
+    scheduleMealReminders 
+} from './src/services/NotificationService';
 
 // Screen Imports
 import WelcomeScreen from './src/screens/WelcomeScreen';
@@ -32,9 +30,11 @@ import AddMealScreen from './src/screens/AddMealScreen';
 import SearchScreen from './src/screens/SearchScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import MealPlannerScreen from './src/screens/MealPlannerScreen';
+
+// Masque les alertes sur l'écran (elles restent dans le terminal)
+LogBox.ignoreAllLogs();
 const Stack = createNativeStackNavigator();
 
-// 1. Prevent the native splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function App() {
@@ -43,8 +43,23 @@ export default function App() {
     useEffect(() => {
         async function prepare() {
             try {
-                // --- 5 SECOND LOADING TIMER ---
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                // 1. Demande de permissions au lancement
+                const hasPermission = await requestNotificationPermissions();
+                
+                // 2. Si l'utilisateur est connecté, on synchronise les notifications
+                // comme le fait WhatsApp au démarrage
+                auth.onAuthStateChanged(async (user) => {
+                    if (user && hasPermission) {
+                        const userDoc = await getDoc(doc(db, "users", user.uid));
+                        if (userDoc.exists() && userDoc.data().notifications !== false) {
+                            await scheduleMealReminders();
+                            console.log("🚀 Rappels synchronisés au démarrage");
+                        }
+                    }
+                });
+
+                // Timer de 3 secondes (réduit pour une meilleure expérience)
+                await new Promise(resolve => setTimeout(resolve, 3000));
             } catch (e) {
                 console.warn(e);
             } finally {
@@ -54,40 +69,28 @@ export default function App() {
         prepare();
     }, []);
 
-    // 2. Hide the native white splash as soon as our custom view renders
     const onLayoutRootView = useCallback(async () => {
-        await SplashScreen.hideAsync();
-    }, []);
+        if (appIsReady) {
+            await SplashScreen.hideAsync();
+        }
+    }, [appIsReady]);
 
-    // --- LOADING PAGE (Logo + Name + Spinner) ---
     if (!appIsReady) {
         return (
-            <View style={styles.loadingContainer} onLayout={onLayoutRootView}>
+            <View style={styles.loadingContainer}>
                 <StatusBar style="dark" />
-                <Image
-                    source={require('./assets/logo.png')}
-                    style={styles.logo}
-                />
+                <Image source={require('./assets/logo.png')} style={styles.logo} />
                 <Text style={styles.appName}>NutriTrack</Text>
-
-                <ActivityIndicator 
-                    size="large" 
-                    color="#A3C981" 
-                    style={{ marginTop: 40 }} 
-                />
+                <ActivityIndicator size="large" color="#A3C981" style={{ marginTop: 40 }} />
             </View>
         );
     }
 
-    // --- MAIN APP (Shown after 5 seconds) ---
     return (
-        <SafeAreaProvider>
+        <SafeAreaProvider onLayout={onLayoutRootView}>
             <NavigationContainer>
                 <StatusBar style="auto" />
-                <Stack.Navigator 
-                    initialRouteName="Welcome"
-                    screenOptions={{ headerShown: false }}
-                >
+                <Stack.Navigator initialRouteName="Welcome" screenOptions={{ headerShown: false }}>
                     <Stack.Screen name="Welcome" component={WelcomeScreen} />
                     <Stack.Screen name="Login" component={LoginScreen} />
                     <Stack.Screen name="SignupBasic" component={SignupBasicScreen} />
@@ -100,11 +103,7 @@ export default function App() {
                     <Stack.Screen name="AddMeal" component={AddMealScreen} />  
                     <Stack.Screen name="SearchFood" component={SearchScreen} />
                     <Stack.Screen name="History" component={HistoryScreen} />
-                    <Stack.Screen 
-  name="MealPlanner" 
-  component={MealPlannerScreen} 
-  options={{ headerShown: false }} 
-/>
+                    <Stack.Screen name="MealPlanner" component={MealPlannerScreen} />
                 </Stack.Navigator>
             </NavigationContainer>
         </SafeAreaProvider>
@@ -112,21 +111,7 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-    loadingContainer: {
-        flex: 1,
-        backgroundColor: '#F8FAF5', // Your custom bg-fresh color
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    logo: {
-        width: 150,
-        height: 150,
-        resizeMode: 'contain',
-    },
-    appName: {
-        fontSize: 42,
-        fontWeight: 'bold',
-        color: '#A3C981', // Your custom primary green
-        marginTop: 2,    // Matches the "very small space" requirement
-    },
+    loadingContainer: { flex: 1, backgroundColor: '#F8FAF5', alignItems: 'center', justifyContent: 'center' },
+    logo: { width: 150, height: 150, resizeMode: 'contain' },
+    appName: { fontSize: 42, fontWeight: 'bold', color: '#A3C981', marginTop: 2 },
 });
