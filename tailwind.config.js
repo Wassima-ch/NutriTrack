@@ -9,7 +9,8 @@ module.exports = {
         fresh: '#F8FAF5',         // bg-fresh
         mainText: '#1A1C1E',      // text-main
         mutedText: '#5B6056',     // text-muted
-      },
+        bluePrimary: '#9CD8F7',
+     },
       borderRadius: {
         'xl-custom': '30px',
       }

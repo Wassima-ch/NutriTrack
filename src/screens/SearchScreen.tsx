@@ -20,6 +20,9 @@ import {
   Plus,
 } from 'lucide-react-native';
 
+// 1. Import de ta barre de navigation
+import CustomTabBar from '../navigation/CustomTabBar';
+
 export default function SearchScreen({ navigation }: any) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
@@ -44,7 +47,6 @@ export default function SearchScreen({ navigation }: any) {
   const saveMeal = async (item: any) => {
     try {
       const userUid = auth.currentUser?.uid;
-      // CORRECTION : On utilise le format fr-FR pour que le Dashboard le détecte
       const todayStr = new Date().toLocaleDateString('fr-FR');
 
       await addDoc(collection(db, 'meals'), {
@@ -66,86 +68,93 @@ export default function SearchScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-fresh px-6">
-      {/* Header */}
-      <View className="flex-row items-center my-6">
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <ArrowLeft size={28} color="#A3C981" />
-        </TouchableOpacity>
-        <Text className="text-2xl font-black ml-4 text-mainText">
-          Chercher un aliment
-        </Text>
-      </View>
+    // 2. Enveloppe flex-1 pour fixer la barre en bas
+    <View className="flex-1 bg-fresh">
+      <SafeAreaView className="flex-1 px-6">
+        {/* Header */}
+        <View className="flex-row items-center my-6">
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <ArrowLeft size={28} color="#A3C981" />
+          </TouchableOpacity>
+          <Text className="text-2xl font-black ml-4 text-mainText">
+            Chercher un aliment
+          </Text>
+        </View>
 
-      {/* Search Bar */}
-      <View className="flex-row bg-white rounded-2xl p-2 items-center mb-6 shadow-sm border border-gray-100">
-        <TextInput
-          placeholder="Ex : Yaourt, Pomme..."
-          value={query}
-          onChangeText={setQuery}
-          onSubmitEditing={handleSearch}
-          className="flex-1 px-4 h-12 text-mainText"
-          placeholderTextColor="#9CA3AF"
-        />
-        <TouchableOpacity
-          onPress={handleSearch}
-          className="bg-primary p-3 rounded-xl"
+        {/* Search Bar */}
+        <View className="flex-row bg-white rounded-2xl p-2 items-center mb-6 shadow-sm border border-gray-100">
+          <TextInput
+            placeholder="Ex : Yaourt, Pomme..."
+            value={query}
+            onChangeText={setQuery}
+            onSubmitEditing={handleSearch}
+            className="flex-1 px-4 h-12 text-mainText"
+            placeholderTextColor="#9CA3AF"
+          />
+          <TouchableOpacity
+            onPress={handleSearch}
+            className="bg-primary p-3 rounded-xl"
+          >
+            <Search size={20} color="white" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Results */}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          // 3. paddingBottom important pour voir le dernier résultat
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 140 }}
         >
-          <Search size={20} color="white" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Results */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ flexGrow: 1 }}
-      >
-        {loading ? (
-          <ActivityIndicator size="large" color="#A3C981" className="mt-10" />
-        ) : results.length > 0 ? (
-          results.map((item, i) => (
-            <TouchableOpacity
-              key={i}
-              onPress={() => saveMeal(item)}
-              className="bg-white p-4 rounded-[25px] mb-4 flex-row items-center shadow-sm"
-            >
-              <Image
-                source={{ uri: item.image }}
-                className="w-14 h-14 rounded-2xl bg-gray-50"
-              />
-              <View className="flex-1 ml-4">
-                <Text
-                  className="font-bold text-mainText text-lg"
-                  numberOfLines={1}
-                >
-                  {item.name}
-                </Text>
-                <Text className="text-primary font-black">
-                  {Math.round(item.calories)} kcal
-                </Text>
+          {loading ? (
+            <ActivityIndicator size="large" color="#A3C981" className="mt-10" />
+          ) : results.length > 0 ? (
+            results.map((item, i) => (
+              <TouchableOpacity
+                key={i}
+                onPress={() => saveMeal(item)}
+                className="bg-white p-4 rounded-[25px] mb-4 flex-row items-center shadow-sm"
+              >
+                <Image
+                  source={{ uri: item.image }}
+                  className="w-14 h-14 rounded-2xl bg-gray-50"
+                />
+                <View className="flex-1 ml-4">
+                  <Text
+                    className="font-bold text-mainText text-lg"
+                    numberOfLines={1}
+                  >
+                    {item.name}
+                  </Text>
+                  <Text className="text-primary font-black">
+                    {Math.round(item.calories)} kcal
+                  </Text>
+                </View>
+                <View className="bg-secondary p-2 rounded-full">
+                  <Plus size={20} color="#A3C981" />
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View className="flex-1 justify-center items-center pb-24">
+              <View className="bg-gray-100 p-10 rounded-full mb-6">
+                {hasSearched ? (
+                  <SearchX size={80} color="#D1D5DB" />
+                ) : (
+                  <Search size={80} color="#D1D5DB" />
+                )}
               </View>
-              <View className="bg-secondary p-2 rounded-full">
-                <Plus size={20} color="#A3C981" />
-              </View>
-            </TouchableOpacity>
-          ))
-        ) : (
-          <View className="flex-1 justify-center items-center pb-24">
-            <View className="bg-gray-100 p-10 rounded-full mb-6">
-              {hasSearched ? (
-                <SearchX size={80} color="#D1D5DB" />
-              ) : (
-                <Search size={80} color="#D1D5DB" />
-              )}
+              <Text className="text-gray-400 text-lg font-bold text-center px-10">
+                {hasSearched
+                  ? "Aucun résultat trouvé pour votre recherche."
+                  : "Entrez le nom d'un produit pour afficher ses valeurs nutritionnelles."}
+              </Text>
             </View>
-            <Text className="text-gray-400 text-lg font-bold text-center px-10">
-              {hasSearched
-                ? "Aucun résultat trouvé pour votre recherche."
-                : "Entrez le nom d'un produit pour afficher ses valeurs nutritionnelles."}
-            </Text>
-          </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+
+      {/* 4. Ajout de la barre en bas */}
+      <CustomTabBar />
+    </View>
   );
 }

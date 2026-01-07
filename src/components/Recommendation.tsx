@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
 import { Sparkles } from 'lucide-react-native';
 
-export default function AIRecommendation({ caloriesToday, bmr }: { caloriesToday: number, bmr: number }) {
+export default function Recommendation({ caloriesToday, bmr }: { caloriesToday: number, bmr: number }) {
   const [tip, setTip] = useState("Analyse de votre journée...");
 
   useEffect(() => {
