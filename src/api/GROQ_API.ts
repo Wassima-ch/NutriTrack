@@ -1,10 +1,9 @@
-const GROQ_API_KEY = "";
+const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY;
 const URL = "https://api.groq.com/openai/v1/chat/completions";
 
 export const analyzeMealWithAI = async (text: string, preferences: string[] = [], objectif: string = "") => {
   try {
     const prefsString = preferences.length > 0 ? preferences.join(", ") : "Aucune restriction";
-    
     const response = await fetch(URL, {
       method: "POST",
       headers: {
@@ -20,12 +19,10 @@ export const analyzeMealWithAI = async (text: string, preferences: string[] = []
             PROFIL UTILISATEUR :
             - Préférences : ${prefsString}
             - Objectif : ${objectif}
-
             TACHE : 
             1. Estime prot, carb, fat.
             2. ALERTE : Si ingrédient interdit (ex: viande pour "Végétarien"), remplis "warning".
-            3. CONSEIL : Si le repas ne correspond pas à l'objectif (ex: trop léger pour prise de masse), donne un conseil de 10 mots max dans "matchObjectif".
-
+            3. CONSEIL : Si le repas ne correspond pas à l'objectif, donne un conseil de 10 mots max dans "matchObjectif".
             Réponds UNIQUEMENT en JSON : 
             {"prot":number, "carb":number, "fat":number, "name":string, "warning":string|null, "matchObjectif":string}`
           },
@@ -37,7 +34,7 @@ export const analyzeMealWithAI = async (text: string, preferences: string[] = []
     });
 
     const data = await response.json();
-    if (data.choices && data.choices[0]?.message?.content) {
+    if (data.choices?.[0]?.message?.content) {
       const parsed = JSON.parse(data.choices[0].message.content);
       const p = Math.round(Number(parsed.prot || 0));
       const g = Math.round(Number(parsed.carb || 0));

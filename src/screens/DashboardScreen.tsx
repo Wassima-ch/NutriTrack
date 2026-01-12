@@ -3,23 +3,24 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../config/firebase';
 import { doc, collection, query, where, onSnapshot, orderBy, limit, setDoc, updateDoc, increment } from 'firebase/firestore';
-import { 
-  Flame, Home, BookOpen, ScanLine, Activity, BarChart3, 
-  Search, ChevronRight, Calendar, Clock, Target, User, 
-  ChefHat, Droplets, Plus 
+import { Flame, Home, BookOpen, Activity, BarChart3, 
+         Search, ChevronRight, Calendar, Clock, Target, User, 
+         ChefHat, Droplets, Plus, Utensils 
 } from 'lucide-react-native';
-
 import { calculateBMR, calculateMacros } from '../utils/nutrition';
 import Recommendation from '../components/Recommendation'; 
 import { BadgeSystem } from '../components/BadgeSystem';
-// On importe les fonctions de notification
-import { 
-  requestNotificationPermissions, 
-  scheduleMealReminders, 
-  scheduleWaterReminders,
-  sendKcalAlert 
+import { requestNotificationPermissions, 
+         scheduleMealReminders, 
+         scheduleWaterReminders,
+         sendKcalAlert 
 } from '../services/NotificationService';
 
+type WeeklyEntry = {
+  day: string;
+  kcal: number;
+  dateKey: string;
+};
 const MacroBar = ({ label, current, target, color }: any) => (
   <View className="mb-4">
     <View className="flex-row justify-between mb-1">
@@ -31,23 +32,18 @@ const MacroBar = ({ label, current, target, color }: any) => (
     </View>
   </View>
 );
-
 export default function DashboardScreen({ navigation }: any) {
   const [userData, setUserData] = useState<any>(null);
   const [totals, setTotals] = useState({ calories: 0, proteins: 0, carbs: 0, fats: 0 });
-  const [weeklyData, setWeeklyData] = useState<any[]>([]);
+  const [weeklyData, setWeeklyData] = useState<WeeklyEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState('');
   const [stats, setStats] = useState({ total: 0, streak: 0 });
   const [waterGlasses, setWaterGlasses] = useState(0);
   const [alertSent, setAlertSent] = useState(false);
-
   const todayMaroc = new Date().toLocaleDateString('fr-FR', { timeZone: 'Africa/Casablanca' });
-
   const dailyBudget = useMemo(() => calculateBMR(userData), [userData]);
   const macroTargets = useMemo(() => calculateMacros(dailyBudget), [dailyBudget]);
-
-  // Notifications de dépassement Calories
   useEffect(() => {
     if (!loading && dailyBudget > 0) {
       if (totals.calories > dailyBudget && !alertSent) {
@@ -58,49 +54,35 @@ export default function DashboardScreen({ navigation }: any) {
       }
     }
   }, [totals.calories, dailyBudget, alertSent, loading]);
-
-  // Notifications Repas (Une seule fois)
   useEffect(() => {
     const initNotifications = async () => {
-      const perm = await requestNotificationPermissions();
-      if (perm) {
-        await scheduleMealReminders();
+      try {
+        const perm = await requestNotificationPermissions();
+        if (perm) await scheduleMealReminders();
+      } catch (err) {
+        console.error("Notification Init Error:", err);
       }
     };
     initNotifications();
   }, []);
-
-  // Notifications Eau (Dynamique)
   useEffect(() => {
-    if (!loading) {
-      scheduleWaterReminders(waterGlasses);
-    }
+    if (!loading) scheduleWaterReminders(waterGlasses);
   }, [waterGlasses, loading]);
-
-  // Firebase Logic
   useEffect(() => {
     const updateTime = () => {
-      const now = new Date();
-      setCurrentTime(now.toLocaleTimeString('fr-FR', { 
+      setCurrentTime(new Date().toLocaleTimeString('fr-FR', { 
         timeZone: 'Africa/Casablanca', hour: '2-digit', minute: '2-digit' 
       }));
     };
     updateTime();
     const timer = setInterval(updateTime, 60000);
-
     const userUid = auth.currentUser?.uid;
     if (!userUid) return;
-
-    const unsubUser = onSnapshot(doc(db, "users", userUid), (snap) => {
-      setUserData(snap.data());
-    });
-
+    const unsubUser = onSnapshot(doc(db, "users", userUid), (snap) => setUserData(snap.data()));
     const waterDocRef = doc(db, "waterTracking", `${userUid}_${todayMaroc}`);
     const unsubWater = onSnapshot(waterDocRef, (snap) => {
-      if (snap.exists()) setWaterGlasses(snap.data().count);
-      else setWaterGlasses(0);
+      setWaterGlasses(snap.exists() ? snap.data().count : 0);
     });
-
     const qToday = query(collection(db, "meals"), where("userId", "==", userUid), where("date", "==", todayMaroc));
     const unsubToday = onSnapshot(qToday, (snap) => {
       let sum = { calories: 0, proteins: 0, carbs: 0, fats: 0 };
@@ -113,15 +95,13 @@ export default function DashboardScreen({ navigation }: any) {
       });
       setTotals(sum);
     });
-
     const qWeek = query(collection(db, "meals"), where("userId", "==", userUid), orderBy("createdAt", "desc"), limit(100));
     const unsubWeek = onSnapshot(qWeek, (snap) => {
-      const daysMap: any = {};
+      const daysMap: Record<string, number> = {};
       snap.forEach(d => { 
         const m = d.data(); 
         daysMap[m.date] = (daysMap[m.date] || 0) + (Number(m.calories) || 0); 
       });
-
       let currentStreak = 0;
       let checkDate = new Date();
       while (daysMap[checkDate.toLocaleDateString('fr-FR', { timeZone: 'Africa/Casablanca' })]) {
@@ -129,9 +109,9 @@ export default function DashboardScreen({ navigation }: any) {
         checkDate.setDate(checkDate.getDate() - 1);
       }
       setStats({ total: snap.size, streak: currentStreak });
-
-      const last7 = [...Array(7)].map((_, i) => {
-        const d = new Date(); d.setDate(d.getDate() - i);
+      const last7 = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(); 
+        d.setDate(d.getDate() - i);
         const k = d.toLocaleDateString('fr-FR', { timeZone: 'Africa/Casablanca' });
         return { 
           day: d.toLocaleDateString('fr-FR', { weekday: 'short', timeZone: 'Africa/Casablanca' }), 
@@ -139,20 +119,14 @@ export default function DashboardScreen({ navigation }: any) {
           dateKey: k
         };
       }).reverse();
-
       setWeeklyData(last7);
       setLoading(false);
     });
-
     return () => { 
       clearInterval(timer); 
-      unsubUser(); 
-      unsubWater();
-      unsubToday(); 
-      unsubWeek(); 
+      unsubUser(); unsubWater(); unsubToday(); unsubWeek(); 
     };
   }, [todayMaroc]);
-
   const handleAddWater = async () => {
     const userUid = auth.currentUser?.uid;
     const waterDocRef = doc(db, "waterTracking", `${userUid}_${todayMaroc}`);
@@ -162,25 +136,30 @@ export default function DashboardScreen({ navigation }: any) {
       } else {
         await updateDoc(waterDocRef, { count: increment(1) });
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error("Firestore Water Add Error:", e); 
+    }
   };
-
   const handleRemoveWater = async () => {
     if (waterGlasses <= 0) return;
     const userUid = auth.currentUser?.uid;
     const waterDocRef = doc(db, "waterTracking", `${userUid}_${todayMaroc}`);
     try {
       await updateDoc(waterDocRef, { count: increment(-1) });
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error("Firestore Water Remove Error:", e); 
+    }
   };
-
+  const getHydrationStatus = () => {
+    if (waterGlasses === 0) return "COMMENCEZ !";
+    if (waterGlasses >= 8) return "EXCELLENT !";
+    return "CONTINUEZ !";
+  };
   if (loading) return <View className="flex-1 bg-fresh justify-center items-center"><ActivityIndicator color="#A3C981" /></View>;
-
   return (
     <View className="flex-1 bg-fresh">
       <SafeAreaView className="flex-1 px-6">
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Header */}
           <View className="mt-8 mb-4 flex-row justify-between items-start">
             <View>
               <Text className="text-mutedText text-lg font-medium">Bonjour 👋</Text>
@@ -195,8 +174,6 @@ export default function DashboardScreen({ navigation }: any) {
               </View>
             </View>
           </View>
-
-          {/* Budget Calories Card */}
           <View className="bg-primary rounded-[40px] p-8 mt-4 shadow-xl shadow-primary/30 relative overflow-hidden">
              <View className="z-10">
                 <View className="flex-row items-center mb-2"><Flame size={20} color="white" /><Text className="text-white text-lg ml-2 font-medium">Budget Calories</Text></View>
@@ -207,27 +184,21 @@ export default function DashboardScreen({ navigation }: any) {
              </View>
              <View className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full" />
           </View>
-
           <Recommendation caloriesToday={totals.calories} bmr={dailyBudget} />
-          
           <BadgeSystem 
             totalMeals={stats.total} 
             streak={stats.streak} 
             goalReachedToday={totals.calories >= dailyBudget * 0.85 && totals.calories <= dailyBudget * 1.15} 
             perfectWeek={false} 
           />
-
-          {/* SUIVI NUTRITIF */}
           <View className="bg-white p-6 rounded-[35px] mt-6 border border-secondary/10 shadow-sm">
             <View className="flex-row items-center mb-6">
               <View className="bg-fresh p-2 rounded-lg mr-3"><Activity size={20} color="#7FB058" /></View>
               <Text className="text-mainText font-black text-xl italic">Suivi Nutritif</Text>
             </View>
-            
             <MacroBar label="Protéines" current={totals.proteins} target={macroTargets.proteins} color="#A3C981" />
             <MacroBar label="Glucides" current={totals.carbs} target={macroTargets.carbs} color="#FFD97D" />
             <MacroBar label="Lipides" current={totals.fats} target={macroTargets.fats} color="#FF8080" />
-
             <View className="mt-2 pt-4 border-t border-gray-50 flex-row justify-around">
                 <View className="items-center">
                   <Text className="text-mutedText text-[10px] font-bold uppercase tracking-tighter">Consommé</Text>
@@ -241,27 +212,29 @@ export default function DashboardScreen({ navigation }: any) {
                 </View>
             </View>
           </View>
-
-          {/* ACTIVITÉ HEBDO */}
           <View className="bg-white p-6 rounded-[35px] mt-6 border border-secondary/10 shadow-sm">
             <View className="flex-row items-center mb-6"> 
               <View className="bg-fresh p-2 rounded-lg mr-3"><BarChart3 size={20} color="#7FB058" /></View>
               <Text className="text-mainText font-black text-lg italic">Activité Hebdomadaire</Text>
             </View>
             <View className="flex-row justify-between items-end h-24 mt-4 px-2">
-              {weeklyData.map((d, i) => (
-                <View key={i} className="items-center">
-                  <View style={{ height: Math.max((d.kcal/dailyBudget)*60,5), width: 14, backgroundColor: d.kcal > dailyBudget ? '#FF8080' : '#A3C981' }} className="rounded-full mb-2" />
+              {weeklyData.map((d) => (
+                <View key={d.dateKey} className="items-center">
+                  <View 
+                    style={{ 
+                        height: Math.max((d.kcal/dailyBudget)*60, 5), 
+                        width: 14, 
+                        backgroundColor: d.kcal > dailyBudget ? '#FF8080' : '#A3C981' 
+                    }} 
+                    className="rounded-full mb-2" 
+                  />
                   <Text className="text-[10px] font-bold text-mutedText uppercase">{d.day}</Text>
                 </View>
               ))}
             </View>
           </View>
-
-          {/* SECTION HYDRATATION */}
           <View className="bg-white p-6 rounded-[40px] mt-6 border border-blue-50 shadow-2xl shadow-blue-100/50 overflow-hidden relative">
-            <View className="absolute -right-10 -bottom-10 w-40 h-40 bg-blue-50/30 rounded-full" />
-            
+            <View className="absolute -right-10 -bottom-10 w-40 h-40 bg-blue-50/30 rounded-full" />           
             <View className="flex-row justify-between items-center mb-8 z-10">
               <View>
                 <Text className="text-mainText font-black text-xl italic mr-2">Suivi d’hydratation</Text>
@@ -272,7 +245,6 @@ export default function DashboardScreen({ navigation }: any) {
                   </Text>
                 </View>
               </View>
-          
               <View className="flex-row items-center bg-gray-50/80 p-1.5 rounded-2xl border border-gray-100">
                 <TouchableOpacity
                   onPress={handleRemoveWater}
@@ -281,9 +253,7 @@ export default function DashboardScreen({ navigation }: any) {
                 >
                   <Text className="text-bluePrimary font-black text-xl">-</Text>
                 </TouchableOpacity>
-                
                 <View className="w-3" />
-                
                 <TouchableOpacity 
                   onPress={handleAddWater}
                   className="w-10 h-10 items-center justify-center bg-bluePrimary rounded-xl shadow-lg shadow-blue-300 active:scale-95"
@@ -291,11 +261,10 @@ export default function DashboardScreen({ navigation }: any) {
                   <Plus size={20} color="white" />
                 </TouchableOpacity>
               </View>
-            </View>
-          
+            </View>         
             <View className="flex-row justify-between items-end mb-8 px-1 z-10">
-              {[...Array(8)].map((_, i) => (
-                <View key={i} style={{ width: '10.5%' }} className="items-center">
+              {Array.from({ length: 8 }, (_, i) => (
+                <View key={`glass-${i}`} style={{ width: '10.5%' }} className="items-center">
                    <Image 
                       source={require('../../assets/verre.png')} 
                       style={{ 
@@ -309,7 +278,6 @@ export default function DashboardScreen({ navigation }: any) {
                 </View>
               ))}
             </View>
-          
             <View className={`overflow-hidden rounded-3xl p-4 flex-row items-center justify-between ${waterGlasses >= 8 ? 'bg-primary' : 'bg-bluePrimary'}`}>
               <View className="flex-row items-center">
                 <View className="bg-white/20 p-2 rounded-xl border border-white/30">
@@ -322,7 +290,7 @@ export default function DashboardScreen({ navigation }: any) {
               </View>
               <View className="items-end">
                 <Text className="text-white font-black italic text-[11px] mb-1">
-                  {waterGlasses === 0 ? "COMMENCEZ !" : waterGlasses >= 8 ? "EXCELLENT !" : "CONTINUEZ !"}
+                  {getHydrationStatus()}
                 </Text>
                 <View className="bg-black/10 px-3 py-1 rounded-lg">
                   <Text className="text-white font-bold text-[9px]">{waterGlasses * 250} ml</Text>
@@ -330,8 +298,6 @@ export default function DashboardScreen({ navigation }: any) {
               </View>
             </View>
           </View>
-
-          {/* OBJECTIF */}
           <TouchableOpacity onPress={() => navigation.navigate('Profile')} className="bg-white p-6 rounded-[35px] mt-6 mb-40 border border-secondary/10 flex-row items-center shadow-sm">
             <View className="bg-primary/10 p-4 rounded-2xl mr-4"><Target size={24} color="#A3C981" /></View>
             <View className="flex-1">
@@ -340,17 +306,14 @@ export default function DashboardScreen({ navigation }: any) {
             </View>
             <ChevronRight size={20} color="#A3C981" />
           </TouchableOpacity>
-
         </ScrollView>
       </SafeAreaView>
-
-      {/* Barre de Navigation */}
       <View className="absolute bottom-10 left-4 right-4 h-20 bg-white/95 rounded-[30px] flex-row items-center justify-around px-2 shadow-2xl border border-white/50">
         <TouchableOpacity onPress={() => navigation.navigate('Dashboard')} className="bg-primary/20 p-3 rounded-2xl flex-row items-center">
           <Home size={22} color="#A3C981" />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('SearchFood')}><Search size={22} color="#A3C981" /></TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('AddMeal')}><ScanLine size={22} color="#A3C981" /></TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('AddMeal')}><Utensils size={22} color="#A3C981" /></TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('MealPlanner')}><ChefHat size={22} color="#7FB058" /></TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('History')}><BookOpen size={22} color="#A3C981" /></TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('Profile')}><User size={22} color="#A3C981" /></TouchableOpacity>

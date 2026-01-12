@@ -1,4 +1,2 @@
-import { auth, db } from '../config/firebase';
-
-// For now, just console.log to see they exist
+import { auth } from '../config/firebase';
 console.log("Firebase initialized with placeholders", auth.app.name);

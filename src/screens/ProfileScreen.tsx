@@ -6,16 +6,12 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import * as ImagePicker from 'expo-image-picker';
 import * as Notifications from 'expo-notifications';
-import {
-  scheduleMealReminders, 
-  requestNotificationPermissions 
+import {scheduleMealReminders, 
+       requestNotificationPermissions 
 } from '../services/NotificationService';
-import { 
-  ArrowLeft, LogOut, Bell, UserCircle2, Info,
-  Scale, Target as TargetIcon, Ruler, CalendarDays, User, Activity, Edit3, Check, Camera
+import {ArrowLeft, LogOut, Bell, UserCircle2, Info,
+        Scale, Target as TargetIcon, Ruler, CalendarDays, User, Activity, Edit3, Check, Camera
 } from 'lucide-react-native';
-
-// 1. Import de ta barre de navigation
 import CustomTabBar from '../navigation/CustomTabBar';
 
 const ProfileItem = ({ icon: Icon, label, value, field, isEditing, data, setData, keyboardType = 'default' }: any) => (
@@ -39,7 +35,6 @@ const ProfileItem = ({ icon: Icon, label, value, field, isEditing, data, setData
     </View>
   </View>
 );
-
 export default function ProfileScreen({ navigation }: any) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -47,11 +42,9 @@ export default function ProfileScreen({ navigation }: any) {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [newPref, setNewPref] = useState('');
-
   useEffect(() => {
     fetchUserData();
   }, []);
-
   const fetchUserData = async () => {
     try {
       const userSession = auth.currentUser;
@@ -75,7 +68,6 @@ export default function ProfileScreen({ navigation }: any) {
       setLoading(false);
     }
   };
-
   const toggleNotifications = async (value: boolean) => {
     setNotificationsEnabled(value);
     try {
@@ -88,7 +80,6 @@ export default function ProfileScreen({ navigation }: any) {
         } else {
             await Notifications.cancelAllScheduledNotificationsAsync();
         }
-        
         if (auth.currentUser) {
             await updateDoc(doc(db, "users", auth.currentUser.uid), { notifications: value });
         }
@@ -96,26 +87,41 @@ export default function ProfileScreen({ navigation }: any) {
         console.error(err);
     }
   };
-
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return Alert.alert("Erreur", "Accès refusé");
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.5,
-    });
-    if (!result.canceled) setData({ ...data, profileImage: result.assets[0].uri });
-  };
-
   const handleSave = async () => {
     try {
       if (auth.currentUser) {
-        await updateDoc(doc(db, "users", auth.currentUser.uid), { ...data, notifications: notificationsEnabled });
+        await updateDoc(doc(db, "users", auth.currentUser.uid), { 
+          ...data, 
+          notifications: notificationsEnabled 
+        });
         setIsEditing(false);
         Alert.alert("Succès", "Profil mis à jour !");
       }
-    } catch (e) { Alert.alert("Erreur", "Échec sauvegarde."); }
+    } catch (e) { 
+      console.error("Firestore Save Error:", e); 
+      Alert.alert("Erreur", "Échec de la sauvegarde. Veuillez réessayer."); 
+    }
   };
-
+  const pickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        return Alert.alert("Permissions", "Nous avons besoin de votre permission pour accéder à la galerie.");
+      }
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'], 
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+      if (!result.canceled) {
+        setData({ ...data, profileImage: result.assets[0].uri });
+      }
+    } catch (error) {
+      console.error("ImagePicker Error:", error);
+      Alert.alert("Erreur", "Impossible de charger l'image.");
+    }
+  };
   const handleAddPreference = () => {
     if (newPref.trim().length > 0) {
       const currentPrefs = data.preferences || [];
@@ -123,11 +129,8 @@ export default function ProfileScreen({ navigation }: any) {
       setNewPref(''); setModalVisible(false);
     }
   };
-
   if (loading) return <View className="flex-1 bg-fresh justify-center items-center"><ActivityIndicator size="large" color="#7FB058" /></View>;
-
   return (
-    // 2. View parente flex-1
     <View className="flex-1 bg-fresh">
       <SafeAreaView className="flex-1">
         <View className="flex-row items-center justify-between px-6 py-2">
@@ -137,12 +140,10 @@ export default function ProfileScreen({ navigation }: any) {
             {isEditing ? <Check size={22} color="white" /> : <Edit3 size={22} color="#A3C981" />}
           </TouchableOpacity>
         </View>
-
         <ScrollView 
           className="flex-1 px-6" 
           showsVerticalScrollIndicator={false} 
           keyboardShouldPersistTaps="handled"
-          // 3. Espace pour la barre de navigation
           contentContainerStyle={{ paddingBottom: 140 }}
         >
           <View className="items-center my-6">
@@ -160,7 +161,6 @@ export default function ProfileScreen({ navigation }: any) {
             ) : <Text className="text-2xl font-black text-mainText mt-4 uppercase tracking-tighter">{data?.prenom} {data?.nom}</Text>}
             <Text className="text-mutedText font-medium mt-1">{auth.currentUser?.email}</Text>
           </View>
-
           <Text className="text-mainText font-black text-lg mb-3 italic">Mes Métriques</Text>
           <View className="flex-row justify-between">
               <View style={{width: '48%'}}><ProfileItem icon={CalendarDays} label="Âge" value={data?.age} field="age" keyboardType="numeric" isEditing={isEditing} data={data} setData={setData} /></View>
@@ -170,9 +170,7 @@ export default function ProfileScreen({ navigation }: any) {
           <ProfileItem icon={Scale} label="Poids (kg)" value={data?.poids} field="poids" keyboardType="numeric" isEditing={isEditing} data={data} setData={setData} />
           <ProfileItem icon={Activity} label="Activité" value={data?.niveauActivite} field="niveauActivite" isEditing={isEditing} data={data} setData={setData} />
           <ProfileItem icon={TargetIcon} label="Objectif" value={data?.objectif} field="objectif" isEditing={isEditing} data={data} setData={setData} />
-
           <Text className="text-mainText font-black text-lg mt-4 mb-3 italic">Paramètres</Text>
-          
           <View className="bg-white p-4 rounded-3xl mb-3 border border-secondary/20 shadow-sm">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center">
@@ -187,21 +185,16 @@ export default function ProfileScreen({ navigation }: any) {
               />
             </View>
           </View>
-
           <View className="bg-white p-4 rounded-2xl mb-8 flex-row items-center border border-secondary/20 shadow-sm">
               <View className="bg-fresh p-2 rounded-xl mr-4"><Info size={20} color="#A3C981" /></View>
               <View><Text className="text-mutedText text-[10px] font-bold uppercase tracking-widest">Version</Text><Text className="text-mainText font-bold">1.0.8 - Stable</Text></View>
           </View>
-
           <TouchableOpacity onPress={() => signOut(auth).then(()=>navigation.replace('Login'))} className="flex-row items-center justify-center bg-red-50 p-5 rounded-[25px] mb-6 border border-red-100">
             <LogOut size={20} color="#FF8080" /><Text className="text-[#FF8080] font-bold text-lg ml-2 uppercase tracking-tighter">Déconnexion</Text>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
-
-      {/* 4. CustomTabBar ajoutée en bas */}
       <CustomTabBar />
-
       <Modal visible={modalVisible} transparent={true} animationType="fade">
         <View className="flex-1 justify-center items-center bg-black/60 px-6">
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="w-full">

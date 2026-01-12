@@ -14,12 +14,35 @@
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#F8FAF5"
       },
-      "package": "com.anonymous.NutriTrack"
+      "package": "com.anonymous.NutriTrack",
+      "permissions": [
+        "NOTIFICATIONS",
+        "SCHEDULE_EXACT_ALARM",
+        "NOTIFICATIONS",
+        "SCHEDULE_EXACT_ALARM"
+      ]
     },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/logo.png",
+          "color": "#A3C981"
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "7459c9d6-5297-4bd9-858e-418de3811e19"
       }
-    }
+    },
+    "owner": "imachz",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/7459c9d6-5297-4bd9-858e-418de3811e19"
+    },
+    "ios": {}
   }
 }

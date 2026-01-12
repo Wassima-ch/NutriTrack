@@ -4,11 +4,11 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: '#A3C981',       // primary-green
-        secondary: '#D0DDC4',     // selection-light
-        fresh: '#F8FAF5',         // bg-fresh
-        mainText: '#1A1C1E',      // text-main
-        mutedText: '#5B6056',     // text-muted
+        primary: '#A3C981',       
+        secondary: '#D0DDC4',    
+        fresh: '#F8FAF5',         
+        mainText: '#1A1C1E',     
+        mutedText: '#5B6056',     
         bluePrimary: '#9CD8F7',
      },
       borderRadius: {

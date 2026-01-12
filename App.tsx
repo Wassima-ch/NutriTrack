@@ -5,18 +5,11 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
-
-// Import Firebase pour la vérification au démarrage
 import { auth, db } from './src/config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-
-// Import des services de notification
-import { 
-    requestNotificationPermissions, 
-    scheduleMealReminders 
+import { requestNotificationPermissions, 
+        scheduleMealReminders 
 } from './src/services/NotificationService';
-
-// Screen Imports
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupBasicScreen from './src/screens/SignupBasicScreen';
@@ -30,24 +23,17 @@ import AddMealScreen from './src/screens/AddMealScreen';
 import SearchScreen from './src/screens/SearchScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import MealPlannerScreen from './src/screens/MealPlannerScreen';
+import ForgotPassword from './src/screens/ForgotPasswordScreen';
 
-// Masque les alertes sur l'écran (elles restent dans le terminal)
 LogBox.ignoreAllLogs();
 const Stack = createNativeStackNavigator();
-
 SplashScreen.preventAutoHideAsync().catch(() => {});
-
 export default function App() {
     const [appIsReady, setAppIsReady] = useState(false);
-
     useEffect(() => {
         async function prepare() {
             try {
-                // 1. Demande de permissions au lancement
                 const hasPermission = await requestNotificationPermissions();
-                
-                // 2. Si l'utilisateur est connecté, on synchronise les notifications
-                // comme le fait WhatsApp au démarrage
                 auth.onAuthStateChanged(async (user) => {
                     if (user && hasPermission) {
                         const userDoc = await getDoc(doc(db, "users", user.uid));
@@ -57,8 +43,6 @@ export default function App() {
                         }
                     }
                 });
-
-                // Timer de 3 secondes (réduit pour une meilleure expérience)
                 await new Promise(resolve => setTimeout(resolve, 3000));
             } catch (e) {
                 console.warn(e);
@@ -68,13 +52,11 @@ export default function App() {
         }
         prepare();
     }, []);
-
     const onLayoutRootView = useCallback(async () => {
         if (appIsReady) {
             await SplashScreen.hideAsync();
         }
     }, [appIsReady]);
-
     if (!appIsReady) {
         return (
             <View style={styles.loadingContainer}>
@@ -85,7 +67,6 @@ export default function App() {
             </View>
         );
     }
-
     return (
         <SafeAreaProvider onLayout={onLayoutRootView}>
             <NavigationContainer>
@@ -104,12 +85,12 @@ export default function App() {
                     <Stack.Screen name="SearchFood" component={SearchScreen} />
                     <Stack.Screen name="History" component={HistoryScreen} />
                     <Stack.Screen name="MealPlanner" component={MealPlannerScreen} />
+                    <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
                 </Stack.Navigator>
             </NavigationContainer>
         </SafeAreaProvider>
     );
 }
-
 const styles = StyleSheet.create({
     loadingContainer: { flex: 1, backgroundColor: '#F8FAF5', alignItems: 'center', justifyContent: 'center' },
     logo: { width: 150, height: 150, resizeMode: 'contain' },
